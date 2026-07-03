@@ -2,7 +2,7 @@
 public class Bit{
     public static void main(String[] args) {
         //PURE LOGIC 
-        //Bitwise NOT &
+        //Bitwise AND &
         System.out.println(9 & 5);// 1
         // Bitwise OR  |
         System.out.println(9 | 5);// 13
