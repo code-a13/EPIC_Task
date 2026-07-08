@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JVM Internal Architecture Blueprint - State Machine</title>
+    <style>
+        :root {
+            --bg: #0d1117; --panel: #161b22; --border: #30363d;
+            --shared: #58a6ff; --private: #ff7b72; --exec: #3fb950; --class: #a371f7;
+            --text-main: #c9d1d9; --text-muted: #8b949e;
+            --hlt: #f2cc60;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr 280px; gap: 20px; }
+        .header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px 20px; border: 1px solid var(--border); border-radius: 8px; }
+        .controls { display: flex; gap: 10px; }
+        button, select { background: #21262d; color: #fff; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        button:hover:not(:disabled) { background: #30363d; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #238636; border: none; }
+        .btn-primary:hover:not(:disabled) { background: #2ea043; }
+
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 5px; }
+        
+        .box { background: #21262d; border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-size: 13px; text-align: center; transition: 0.2s ease-in-out; position: relative; }
+        
+        .shared-area { border: 2px dashed var(--shared); }
+        .private-area { border: 2px solid var(--private); }
+        
+        .active-class { border-color: var(--class) !important; box-shadow: 0 0 10px rgba(163,113,247,0.3); }
+        .active-shared { border-color: var(--shared) !important; box-shadow: 0 0 10px rgba(88,166,255,0.3); }
+        .active-private { border-color: var(--private) !important; box-shadow: 0 0 10px rgba(255,123,114,0.3); }
+        .active-exec { border-color: var(--exec) !important; box-shadow: 0 0 10px rgba(63,185,80,0.3); }
+
+        .memory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .stack-data { font-family: monospace; text-align: left; background: #010409; padding: 8px; border-radius: 4px; border: 1px solid var(--border); min-height: 40px; margin-top: 5px; color: var(--hlt); }
+        
+        .monitor { grid-column: 1 / -1; background: #010409; border: 1px solid var(--border); border-radius: 8px; padding: 15px; font-family: 'Courier New', Courier, monospace; font-size: 14px; color: var(--exec); min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+        .monitor .sys { color: var(--text-muted); }
+        .monitor .val { color: var(--hlt); font-weight: bold; }
+        
+        .badge { background: #30363d; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 5px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="font-size: 18px; font-weight: bold;">JVM State Machine Engine</div>
+    <div class="controls">
+        <select id="scenario-selector" onchange="changeScenario()">
+            <option value="A">Scenario A: Lazy Class Loading</option>
+            <option value="B">Scenario B: Method Execution (Stack Frame)</option>
+            <option value="C">Scenario C: GC Memory Shift</option>
+        </select>
+        <button onclick="prevStep()" id="btn-prev" disabled>&#9664; Prev Step</button>
+        <button onclick="nextStep()" id="btn-next" class="btn-primary">Next Step &#9654;</button>
+        <button onclick="resetState()" style="border-color: #da3633; color: #da3633; background: transparent;">Reset</button>
+    </div>
+</div>
+
+<div class="container" style="margin-top: 20px;">
+    <div class="panel">
+        <div class="title" style="color: var(--class);">1. Class Loader Subsystem</div>
+        <div class="box" id="cl-boot">Bootstrap Loader</div>
+        <div style="text-align:center; color:var(--border);">↓</div>
+        <div class="box" id="cl-ext">Extension Loader</div>
+        <div style="text-align:center; color:var(--border);">↓</div>
+        <div class="box" id="cl-app">Application Loader</div>
+        <div class="box" id="cl-link" style="margin-top: 15px; opacity: 0.7;">Linking (Verify/Prepare)</div>
+        <div class="box" id="cl-init" style="opacity: 0.7;">Initialization &lt;clinit&gt;</div>
+    </div>
+
+    <div class="panel">
+        <div class="title">2. Runtime Data Areas</div>
+        <div class="memory-grid">
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-size: 12px; text-align: center; color: var(--shared);">[ Thread-Shared ]</div>
+                <div class="panel shared-area" id="mem-meta">
+                    <strong>Method Area / Metaspace</strong>
+                    <div class="stack-data" id="meta-data">Class Metadata: NULL</div>
+                </div>
+                <div class="panel shared-area" id="mem-heap">
+                    <strong>Heap Generation</strong>
+                    <div class="box" id="heap-eden">Eden <span class="badge" id="b-eden">0</span></div>
+                    <div style="display:flex; gap:5px;">
+                        <div class="box" style="flex:1;" id="heap-s0">S0 <span class="badge" id="b-s0">0</span></div>
+                        <div class="box" style="flex:1;" id="heap-s1">S1 <span class="badge" id="b-s1">0</span></div>
+                    </div>
+                    <div class="box" id="heap-old">Old Gen <span class="badge" id="b-old">0</span></div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-size: 12px; text-align: center; color: var(--private);">[ Thread-Private ]</div>
+                <div class="panel private-area" id="mem-pc">
+                    <strong>PC Register</strong>
+                    <div class="stack-data" style="text-align:center; font-size:16px;" id="pc-val">0x0000</div>
+                </div>
+                <div class="panel private-area" id="mem-stack">
+                    <strong>JVM Stack (Frame)</strong>
+                    <div style="font-size: 11px; margin-top:5px;">Local Variable Array:</div>
+                    <div class="stack-data" id="stack-lva">[]</div>
+                    <div style="font-size: 11px; margin-top:5px;">Operand Stack:</div>
+                    <div class="stack-data" id="stack-ops">[]</div>
+                </div>
+                <div class="panel private-area" id="mem-native">
+                    <strong>Native Stack</strong>
+                    <div class="box" style="padding: 5px;">C/C++ Pointers</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="title" style="color: var(--exec);">3. Execution Engine & JNI</div>
+        <div class="box" id="ee-interp">Interpreter</div>
+        <div class="box" id="ee-jit">JIT Compiler</div>
+        <div class="box" id="ee-gc">Garbage Collector</div>
+        
+        <div class="title" style="margin-top: 20px;">Native Interface</div>
+        <div class="box" id="ee-jni">JNI (Java Native Interface)</div>
+    </div>
+
+    <div class="monitor" id="monitor-box">
+        <div><span class="sys">[SYS]</span> INITIALIZING STATE MACHINE...</div>
+        <div><span class="sys">[SYS]</span> SELECT A SCENARIO AND PRESS "NEXT STEP"</div>
+    </div>
+</div>
+
+<script>
+    const states = {
+        A: [
+            { sys: "IDLE", log: "Waiting for Main.class load request...", hlt: [] },
+            { sys: "LOAD", log: "Application Loader receives request. Delegates up.", hlt: ['cl-app'], actClass: true },
+            { sys: "LOAD", log: "Extension Loader delegates to Bootstrap.", hlt: ['cl-ext', 'cl-app'], actClass: true },
+            { sys: "LOAD", log: "Bootstrap & Ext skip. Application Loader reads bytecode into Memory.", hlt: ['cl-app', 'cl-boot', 'cl-ext'], actClass: true, meta: "Main.class loaded" },
+            { sys: "LINK", log: "Verification & Preparation. Static vars allocated.", hlt: ['cl-link'], actClass: true, meta: "static int X = 0 (Prepared)" },
+            { sys: "INIT", log: "<clinit> executes. Static variables initialized.", hlt: ['cl-init', 'mem-meta'], actClass: true, actShared: true, meta: "static int X = 10 (Initialized)" }
+        ],
+        B: [
+            { sys: "IDLE", log: "Main Thread RUNNABLE. Ready to execute int sum = a + b;", hlt: [], pc: "0x0000", lva: "[]", ops: "[]" },
+            { sys: "EXEC", log: "Pushing Stack Frame for calculateSum(5, 3).", hlt: ['mem-stack', 'mem-pc'], actPriv: true, pc: "0x0100", lva: "[0: 5, 1: 3]", ops: "[]" },
+            { sys: "BYTECODE", log: "Instruction: iload_0 (Load variable at index 0 to Operand Stack)", hlt: ['ee-interp', 'mem-stack'], actExec: true, actPriv: true, pc: "0x0101", lva: "[0: 5, 1: 3]", ops: "[5]" },
+            { sys: "BYTECODE", log: "Instruction: iload_1 (Load variable at index 1 to Operand Stack)", hlt: ['ee-interp', 'mem-stack'], actExec: true, actPriv: true, pc: "0x0102", lva: "[0: 5, 1: 3]", ops: "[3, 5]" },
+            { sys: "BYTECODE", log: "Instruction: iadd (Pop 2 values, ADD, push result back)", hlt: ['ee-interp', 'mem-stack'], actExec: true, actPriv: true, pc: "0x0103", lva: "[0: 5, 1: 3]", ops: "[8]" },
+            { sys: "BYTECODE", log: "Instruction: istore_2 (Pop result and store in LVA index 2)", hlt: ['ee-interp', 'mem-stack'], actExec: true, actPriv: true, pc: "0x0104", lva: "[0: 5, 1: 3, 2: 8]", ops: "[]" },
+            { sys: "BYTECODE", log: "Instruction: ireturn (Frame popped, returning 8)", hlt: ['mem-stack'], pc: "0x0000", lva: "[Frame Destroyed]", ops: "[Frame Destroyed]" }
+        ],
+        C: [
+            { sys: "MEM", log: "Allocating objects in Eden space...", hlt: ['mem-heap', 'heap-eden'], actShared: true, e: "Obj1, Obj2, Obj3", s0: "0", s1: "0", old: "0" },
+            { sys: "GC", log: "Eden Full. Triggering Minor GC. Marking live objects...", hlt: ['ee-gc', 'heap-eden'], actExec: true, actShared: true, e: "[Obj1 (Live), Obj2(Live), Obj3(Dead)]", s0: "0", s1: "0", old: "0" },
+            { sys: "MEM", log: "Copying live objects to Survivor 0. Incrementing Age.", hlt: ['heap-s0'], actShared: true, e: "0", s0: "Obj1(age=1), Obj2(age=1)", s1: "0", old: "0" },
+            { sys: "MEM", log: "Application continues. Eden fills again.", hlt: ['heap-eden'], actShared: true, e: "Obj4, Obj5", s0: "Obj1(age=1), Obj2(age=1)", s1: "0", old: "0" },
+            { sys: "GC", log: "Minor GC 2 Triggered. Shifting from Eden + S0 to S1.", hlt: ['ee-gc', 'heap-s1'], actExec: true, actShared: true, e: "0", s0: "0", s1: "Obj1(age=2), Obj5(age=1)", old: "0" },
+            { sys: "PROMOTION", log: "Tenuring threshold (Age 2) met. Object 1 promoted to Old Gen.", hlt: ['heap-old', 'heap-s1'], actShared: true, e: "0", s0: "0", s1: "Obj5(age=1)", old: "Obj1" }
+        ]
+    };
+
+    let curScen = 'A';
+    let stepIdx = 0;
+
+    function resetUI() {
+        document.querySelectorAll('.box, .panel').forEach(el => {
+            el.classList.remove('active-class', 'active-shared', 'active-private', 'active-exec');
+        });
+    }
+
+    function render() {
+        resetUI();
+        const data = states[curScen][stepIdx];
+        
+        document.getElementById('monitor-box').innerHTML = `<div><span class="sys">[STEP ${stepIdx}]</span> [${data.sys}] <span class="val">${data.log}</span></div>`;
+        
+        data.hlt.forEach(id => {
+            const el = document.getElementById(id);
+            if(data.actClass) el.classList.add('active-class');
+            if(data.actShared) el.classList.add('active-shared');
+            if(data.actPriv) el.classList.add('active-private');
+            if(data.actExec) el.classList.add('active-exec');
+        });
+
+        // Scenario A specifics
+        if(data.meta !== undefined) document.getElementById('meta-data').innerText = data.meta;
+        else if (curScen === 'A') document.getElementById('meta-data').innerText = "Class Metadata: NULL";
+
+        // Scenario B specifics
+        if(data.pc !== undefined) {
+            document.getElementById('pc-val').innerText = data.pc;
+            document.getElementById('stack-lva').innerText = data.lva;
+            document.getElementById('stack-ops').innerText = data.ops;
+        } else if (curScen === 'B' && stepIdx === 0) {
+            document.getElementById('pc-val').innerText = "0x0000";
+            document.getElementById('stack-lva').innerText = "[]";
+            document.getElementById('stack-ops').innerText = "[]";
+        }
+
+        // Scenario C specifics
+        if(data.e !== undefined) {
+            document.getElementById('b-eden').innerText = data.e;
+            document.getElementById('b-s0').innerText = data.s0;
+            document.getElementById('b-s1').innerText = data.s1;
+            document.getElementById('b-old').innerText = data.old;
+        } else if (curScen === 'C' && stepIdx === 0) {
+            document.getElementById('b-eden').innerText = "0";
+            document.getElementById('b-s0').innerText = "0";
+            document.getElementById('b-s1').innerText = "0";
+            document.getElementById('b-old').innerText = "0";
+        }
+
+        document.getElementById('btn-prev').disabled = stepIdx === 0;
+        document.getElementById('btn-next').disabled = stepIdx === states[curScen].length - 1;
+    }
+
+    function changeScenario() {
+        curScen = document.getElementById('scenario-selector').value;
+        resetState();
+    }
+
+    function nextStep() { if(stepIdx < states[curScen].length - 1) { stepIdx++; render(); } }
+    function prevStep() { if(stepIdx > 0) { stepIdx--; render(); } }
+    function resetState() { stepIdx = 0; render(); }
+
+    // Init
+    resetState();
+</script>
+</body>
+</html>

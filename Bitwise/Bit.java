@@ -3,9 +3,9 @@ public class Bit{
     public static void main(String[] args) {
         //PURE LOGIC 
         //Bitwise AND &
-        System.out.println(9 & 5);// 1
+        System.out.println(5 & 3);// 1
         // Bitwise OR  |
-        System.out.println(9 | 5);// 13
+        System.out.println(5 | 3);// 13
         // Bitwise XOR ^
         System.out.println(3 ^ 5);// 6
         //  FORMULAS
@@ -18,3 +18,12 @@ public class Bit{
         
     }
 }
+
+
+/**
+ * a = 4;
+ */
+
+
+
+
