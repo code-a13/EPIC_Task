@@ -1,5 +1,3 @@
-package TasksN;
-
 import java.util.Scanner;
 
 public class Task1 {

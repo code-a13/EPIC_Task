@@ -1,4 +1,3 @@
-package TasksN;
 
 import java.util.Scanner;
 
