@@ -1,4 +1,3 @@
-package a2z_Pattern;
 
 public class A {
     public static void main(String[] args) {
