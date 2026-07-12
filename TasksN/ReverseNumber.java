@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task1 {
+public class ReverseNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        Task1.reverseNumber(n);
+        ReverseNumber.reverseNumber(n);
         sc.close();
     }
     public static void reverseNumber(int n){

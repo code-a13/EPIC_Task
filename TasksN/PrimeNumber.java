@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task4 {
+public class PrimeNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        Task4.prime(n);
+        PrimeNumber.prime(n);
         sc.close();
     }
     public static void prime(int n){

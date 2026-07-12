@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task12 {
+public class DecimaltoBinary {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        System.out.println(Task12.dtob(n));
+        System.out.println(DecimaltoBinary.dtob(n));
         sc.close();
     }
     public static int dtob(int n){

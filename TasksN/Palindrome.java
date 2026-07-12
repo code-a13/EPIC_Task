@@ -2,12 +2,12 @@
 
 import java.util.Scanner;
 
-public class Task2 {
+public class Palindrome {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        Task2.palindrome(n);
+        Palindrome.palindrome(n);
         sc.close();
     }
     public static void palindrome(int n ){

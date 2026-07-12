@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task13 {
+public class BinarytoDecimal {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        System.out.println("Binary to Decimal :"+Task13.btod(n));
+        System.out.println("Binary to Decimal :"+BinarytoDecimal.btod(n));
         sc.close();
     }
     public static int btod(int n){

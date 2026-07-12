@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task5 {
+public class Fibonacci {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        Task5.fibonacci(n);
+        Fibonacci.fibonacci(n);
         sc.close();
     }
     public static void fibonacci(int n){

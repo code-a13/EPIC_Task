@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task15 {
+public class PerfectNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task15.perfect(n)){
+        if(PerfectNumber.perfect(n)){
             System.out.println("Perfect Number");
         }
         else{

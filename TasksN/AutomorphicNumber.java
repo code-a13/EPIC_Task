@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task17 {
+public class AutomorphicNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task17.isAutomorphic(n)){
+        if(AutomorphicNumber.isAutomorphic(n)){
             System.out.println("Automorphic Number");
         }
         else{

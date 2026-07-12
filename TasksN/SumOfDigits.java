@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task10 {
+public class SumOfDigits {
      public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        System.out.println("Sum of Digits: "+Task10.sod(n));
+        System.out.println("Sum of Digits: "+SumOfDigits.sod(n));
         sc.close();
     }
     public static int sod(int n){

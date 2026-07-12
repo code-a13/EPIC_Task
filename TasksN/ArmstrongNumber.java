@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task3 {
+public class ArmstrongNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.println("Enter a Number: ");
         int n = sc.nextInt();
-        Task3.armstrong(n);
+        ArmstrongNumber.armstrong(n);
         sc.close();
     }
     public static void armstrong(int n){

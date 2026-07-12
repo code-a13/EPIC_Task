@@ -1,14 +1,14 @@
 
 import java.util.Scanner;
 
-public class Task8 {
+public class GCD {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n1 = sc.nextInt();
         System.out.print("Enter a Number: ");
         int n2 = sc.nextInt();
-        System.out.println("GCD :"+Task8.gcd(n1,n2));
+        System.out.println("GCD :"+GCD.gcd(n1,n2));
         sc.close();
     }
     public static int gcd(int n1,int n2){

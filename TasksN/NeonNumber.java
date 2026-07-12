@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task20 {
+public class NeonNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task20.isNeon(n)){
+        if(NeonNumber.isNeon(n)){
             System.out.println("Neon Number");
         }
         else{

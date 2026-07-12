@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task18 {
+public class HarshadNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task18.harshad(n)){
+        if(HarshadNumber.harshad(n)){
             System.out.println("Harshad Number");
         }
         else{

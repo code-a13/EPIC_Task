@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task16 {
+public class HappyNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task16.ishappy(n)){
+        if(HappyNumber.ishappy(n)){
             System.out.println("Happy Number");
         }
         else{

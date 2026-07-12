@@ -1,12 +1,12 @@
 
 import java.util.Scanner;
 
-public class Task14 {
+public class StrongNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task14.strong(n)){
+        if(StrongNumber.strong(n)){
             System.out.println("Strong Number");
         }
         else{
@@ -18,7 +18,7 @@ public class Task14 {
         int strong = 0;
         int number = n;
         while(n>0){
-            strong += Task6.factorial(n%10);
+            strong += Factorial.factorial(n%10);
             n /=10;
         }
         return strong == number ? true :false;

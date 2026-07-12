@@ -1,11 +1,11 @@
 import java.util.Scanner;
 
-public class Task19 {
+public class SpyNumber {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter a Number: ");
         int n = sc.nextInt();
-        if(Task19.isSpy(n)){
+        if(SpyNumber.isSpy(n)){
             System.out.println("Spy Number");
         }
         else{
